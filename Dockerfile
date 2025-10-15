@@ -14,12 +14,22 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Copy requirements and install
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
+# Copy the scraper script
 COPY scrape_wingo_cloud.py .
 
+# Set environment variables
 ENV HEADLESS=true
 ENV SCRAPE_INTERVAL=270
+ENV PYTHONUNBUFFERED=1
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-10000}/ || exit 1
+
+# Run the scraper
 CMD ["python", "-u", "scrape_wingo_cloud.py"]
