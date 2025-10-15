@@ -29,11 +29,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY scrape_wingo_cloud.py .
+COPY scraper_clean.py .
 
 # Environment variables
 ENV HEADLESS=true
 ENV SCRAPE_INTERVAL=270
 
 # Run the application
-CMD ["python", "-u", "scrape_wingo_cloud.py"]
+CMD ["python", "-u", "scraper_clean.py"]
