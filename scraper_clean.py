@@ -31,7 +31,8 @@ scraper_status = {
     "running": True,
     "last_scrape": "Not started",
     "total_cycles": 0,
-    "errors": 0
+    "errors": 0,
+    "start_time": datetime.now()
 }
 
 # Simple HTTP server for health checks (prevents Render sleep)
@@ -41,16 +42,152 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         
+        # Calculate uptime
+        import os
+        start_time = scraper_status.get('start_time', datetime.now())
+        uptime = datetime.now() - start_time
+        uptime_str = f"{uptime.days}d {uptime.seconds//3600}h {(uptime.seconds//60)%60}m"
+        
         status_html = f"""
         <html>
-        <head><title>WinGo Scraper Status</title></head>
-        <body style="font-family: Arial; padding: 20px;">
-            <h1>🎰 WinGo Scraper Status</h1>
-            <p><strong>Status:</strong> {'🟢 Running' if scraper_status['running'] else '🔴 Stopped'}</p>
-            <p><strong>Last Scrape:</strong> {scraper_status['last_scrape']}</p>
-            <p><strong>Total Cycles:</strong> {scraper_status['total_cycles']}</p>
-            <p><strong>Errors:</strong> {scraper_status['errors']}</p>
-            <p><strong>Uptime:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <head>
+            <title>WinGo Scraper Status</title>
+            <meta http-equiv="refresh" content="10">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 20px;
+                    margin: 0;
+                }}
+                .container {{
+                    max-width: 800px;
+                    margin: 0 auto;
+                    background: white;
+                    border-radius: 15px;
+                    padding: 30px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                }}
+                h1 {{
+                    color: #333;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #667eea;
+                    padding-bottom: 10px;
+                }}
+                .status-grid {{
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                    margin: 20px 0;
+                }}
+                .status-card {{
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 10px;
+                    border-left: 4px solid #667eea;
+                }}
+                .status-card h3 {{
+                    margin: 0 0 10px 0;
+                    color: #666;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                }}
+                .status-card p {{
+                    margin: 0;
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #333;
+                }}
+                .status-running {{
+                    color: #28a745 !important;
+                    font-size: 32px !important;
+                }}
+                .status-stopped {{
+                    color: #dc3545 !important;
+                }}
+                .alert {{
+                    background: #d4edda;
+                    border: 1px solid #c3e6cb;
+                    color: #155724;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                }}
+                .live-indicator {{
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    background: #28a745;
+                    border-radius: 50%;
+                    animation: pulse 2s infinite;
+                    margin-right: 8px;
+                }}
+                @keyframes pulse {{
+                    0%, 100% {{ opacity: 1; }}
+                    50% {{ opacity: 0.3; }}
+                }}
+                .footer {{
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    text-align: center;
+                    color: #666;
+                    font-size: 14px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🎰 WinGo Scraper - Live Status</h1>
+                
+                <div class="alert">
+                    <span class="live-indicator"></span>
+                    <strong>LIVE:</strong> This page auto-refreshes every 10 seconds to prove the scraper never sleeps!
+                </div>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3>Status</h3>
+                        <p class="{'status-running' if scraper_status['running'] else 'status-stopped'}">
+                            {'🟢 RUNNING' if scraper_status['running'] else '🔴 STOPPED'}
+                        </p>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3>Uptime</h3>
+                        <p>{uptime_str}</p>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3>Total Cycles</h3>
+                        <p>{scraper_status['total_cycles']}</p>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3>Errors</h3>
+                        <p style="color: {'#dc3545' if scraper_status['errors'] > 0 else '#28a745'}">
+                            {scraper_status['errors']}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3>Last Scrape Time</h3>
+                        <p style="font-size: 16px;">{scraper_status['last_scrape']}</p>
+                    </div>
+                    
+                    <div class="status-card">
+                        <h3>Current Server Time</h3>
+                        <p style="font-size: 16px;">{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>🔄 Auto-refreshing every 10 seconds | 🌐 Hosted on Render.com</p>
+                    <p style="margin-top: 10px;">This scraper runs <strong>24/7 non-stop</strong> without sleeping!</p>
+                </div>
+            </div>
         </body>
         </html>
         """
@@ -83,9 +220,13 @@ def get_chrome_options():
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-notifications")
+    options.add_argument("--remote-debugging-port=9222")
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
+    
+    # Explicitly set Chrome binary location
+    options.binary_location = "/usr/bin/google-chrome-stable"
     
     # User agent to avoid detection
     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
