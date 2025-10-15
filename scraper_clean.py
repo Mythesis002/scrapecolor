@@ -210,7 +210,7 @@ def get_chrome_options():
         options.add_argument("--headless=new")
         print("🔇 Running in HEADLESS mode")
     
-    # Essential for cloud environments
+    # Essential for Selenium standalone container
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
@@ -221,12 +221,10 @@ def get_chrome_options():
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-notifications")
     options.add_argument("--remote-debugging-port=9222")
+    options.add_argument("--disable-setuid-sandbox")
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
-    
-    # Explicitly set Chrome binary location
-    options.binary_location = "/usr/bin/google-chrome-stable"
     
     # User agent to avoid detection
     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
@@ -495,13 +493,25 @@ def main():
     options = get_chrome_options()
     
     try:
-        # Use webdriver-manager for automatic chromedriver management
+        # Try using ChromeDriverManager first
+        print("📦 Installing ChromeDriver...")
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
+        print("✅ Chrome started with webdriver-manager")
     except Exception as e:
         print(f"⚠️ webdriver-manager failed: {e}")
-        print("Trying default Chrome...")
-        driver = webdriver.Chrome(options=options)
+        print("🔄 Trying with system Chrome...")
+        try:
+            # Try without specifying service (use system chromedriver)
+            driver = webdriver.Chrome(options=options)
+            print("✅ Chrome started with system driver")
+        except Exception as e2:
+            print(f"❌ System Chrome failed: {e2}")
+            print("🔄 Last attempt with explicit binary...")
+            # Last resort - try with explicit paths
+            service = Service('/usr/bin/chromedriver')
+            driver = webdriver.Chrome(service=service, options=options)
+            print("✅ Chrome started with explicit path")
 
     try:
         print("\n📱 Opening website...")
